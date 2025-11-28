@@ -29,7 +29,7 @@ fun Application.configureRouting() {
         }
 
         // Get all events
-        get("/calendar") {
+        get("/events") {
             try {
                 val events = transaction {
                     EventsTable.selectAll().map { rowToEvent(it) }
@@ -42,7 +42,7 @@ fun Application.configureRouting() {
             }
         }
         // Create event
-        post("/calendar"){
+        post("/events"){
          try {
              val event = call.receive<Event>()
              val id = transaction {
@@ -63,7 +63,7 @@ fun Application.configureRouting() {
          }
         }
 
-        put("/calendar/{id}") {
+        put("/events/{id}") {
             try {
                 val id = call.parameters["id"]?.toIntOrNull()
                 if (id == null) {
@@ -92,7 +92,7 @@ fun Application.configureRouting() {
             }
         }
 
-        delete("/calendar/{id}") {
+        delete("/events/{id}") {
             try {
                 val id = call.parameters["id"]?.toIntOrNull()
                 if (id == null) {
