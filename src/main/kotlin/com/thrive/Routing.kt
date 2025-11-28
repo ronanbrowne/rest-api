@@ -12,6 +12,7 @@ import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.deleteWhere
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -27,9 +28,8 @@ fun Application.configureRouting() {
             )
         }
 
-        // get all events
         // Get all events
-        get("/events") {
+        get("/calendar") {
             try {
                 val events = transaction {
                     EventsTable.selectAll().map { rowToEvent(it) }
@@ -42,7 +42,7 @@ fun Application.configureRouting() {
             }
         }
         // Create event
-        post("/events"){
+        post("/calendar"){
          try {
              val event = call.receive<Event>()
              val id = transaction {
@@ -63,7 +63,55 @@ fun Application.configureRouting() {
          }
         }
 
+        put("/calendar/{id}") {
+            try {
+                val id = call.parameters["id"]?.toIntOrNull()
+                if (id == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ID format"))
+                    return@put
+                }
+                val event = call.receive<Event>()
+                val updatedRows = transaction {
+                    EventsTable.update({ EventsTable.id eq id }) {
+                        it[title] = event.title
+                        it[description] = event.description
+                        it[startTime] = event.startTime
+                        it[endTime] = event.endTime
+                        it[location] = event.location
+                        it[attendees] = Json.encodeToString(event.attendees)
+                    }
+                }
+                if (updatedRows > 0) {
+                    call.respond(HttpStatusCode.OK, event.copy(id = id))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Event with ID $id not found"))
+                }
+            } catch (e: Exception) {
+                application.log.error("Error updating event", e)
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Unknown error")))
+            }
+        }
 
+        delete("/calendar/{id}") {
+            try {
+                val id = call.parameters["id"]?.toIntOrNull()
+                if (id == null) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid ID format"))
+                    return@delete
+                }
+                val deletedRows = transaction {
+                    EventsTable.deleteWhere { EventsTable.id eq id }
+                }
+                if (deletedRows > 0) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Event with ID $id not found"))
+                }
+            } catch (e: Exception) {
+                application.log.error("Error deleting event", e)
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
     }
 
 
