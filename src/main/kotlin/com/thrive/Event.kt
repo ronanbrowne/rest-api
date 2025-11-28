@@ -25,7 +25,7 @@ object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
         return LocalDateTime.parse(decoder.decodeString(), formatter)
     }
 }
-
+// Data class representing an event
 @Serializable
 data class Event(
     val id: Int = 0,
