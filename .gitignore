@@ -39,3 +39,7 @@ GEMINI.md
 app.log
 events.db
 .kotlin/
+
+
+#DB
+events.db
