@@ -17,9 +17,11 @@ fun main() {
 }
 
 fun Application.module() {
+    //ensure server can handle JSON responses / requests
     install(ContentNegotiation) {
         json()
     }
+    // set up DB and REST routing for the application
     initDatabase()
     configureRouting()
 }
