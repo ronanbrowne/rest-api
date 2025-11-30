@@ -13,10 +13,13 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.select
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import java.time.LocalDateTime
 
 fun Application.configureRouting() {
     routing {
@@ -42,25 +45,25 @@ fun Application.configureRouting() {
             }
         }
         // Create event
-        post("/events"){
-         try {
-             val event = call.receive<Event>()
-             val id = transaction {
-                 EventsTable.insert {
-                     it[title] = event.title
-                     it[description] = event.description
-                     it[startTime] = event.startTime
-                     it[endTime] = event.endTime
-                     it[location] = event.location
-                     it[attendees] = Json.encodeToString(event.attendees)
-                 } get EventsTable.id
-             }
-             val createdEvent = event.copy(id = id)
-             call.respond(HttpStatusCode.Created, createdEvent)
-         } catch (e: Exception) {
-            application.log.error("Error creating event", e)
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Unknown error")))
-         }
+        post("/events") {
+            try {
+                val event = call.receive<Event>()
+                val id = transaction {
+                    EventsTable.insert {
+                        it[title] = event.title
+                        it[description] = event.description
+                        it[startTime] = event.startTime
+                        it[endTime] = event.endTime
+                        it[location] = event.location
+                        it[attendees] = Json.encodeToString(event.attendees)
+                    } get EventsTable.id
+                }
+                val createdEvent = event.copy(id = id)
+                call.respond(HttpStatusCode.Created, createdEvent)
+            } catch (e: Exception) {
+                application.log.error("Error creating event", e)
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to (e.message ?: "Unknown error")))
+            }
         }
 
         put("/events/{id}") {
@@ -92,6 +95,16 @@ fun Application.configureRouting() {
             }
         }
 
+        get("/events/next") {
+            try {
+                // placeholder get the next event
+
+
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.InternalServerError, "Error: ${e.message}")
+            }
+        }
+
         delete("/events/{id}") {
             try {
                 val id = call.parameters["id"]?.toIntOrNull()
@@ -116,6 +129,7 @@ fun Application.configureRouting() {
 
 
 }
+
 /**
  * Maps a [ResultRow] from the database to an [Event] object.
  *
@@ -129,5 +143,6 @@ private fun rowToEvent(row: ResultRow) = Event(
     startTime = row[EventsTable.startTime],
     endTime = row[EventsTable.endTime],
     location = row[EventsTable.location], // Map the location field
-    attendees = row[EventsTable.attendees]?.let { Json.decodeFromString<List<String>>(it) } ?: emptyList() // Deserialize attendees
+    attendees = row[EventsTable.attendees]?.let { Json.decodeFromString<List<String>>(it) }
+        ?: emptyList() // Deserialize attendees
 )
