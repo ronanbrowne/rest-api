@@ -34,3 +34,12 @@ out/
 
 ### VS Code ###
 .vscode/
+# Gemini specific files
+GEMINI.md
+app.log
+events.db
+.kotlin/
+
+
+#DB
+events.db
